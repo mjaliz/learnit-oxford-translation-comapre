@@ -1,5 +1,6 @@
 import asyncio
 import time
+from fastapi.background import P
 import pandas as pd
 from tqdm import tqdm
 from app.glossary.fetch_word import fetch_word
@@ -8,6 +9,7 @@ from app.services.models.word_meaning import WordMeaning
 from app.translator.meaning_generator import (
     check_meanings,
     generate_meaning,
+    generate_meaning_by_def,
     generate_meaning_updated,
 )
 
@@ -23,84 +25,83 @@ async def generate_word_meaning_service(word: str) -> WordMeaning:
         for item in glossary_word.items
         if item.definition.text != ""
     ]
-    meaining_res = []
+    prompt1_res1 = []
+    prompt1_res2 = []
     for definition in tqdm(definitions):
-        meaining_res.append(await generate_meaning(openai_client, word, definition))
-        time.sleep(10)
+        res1, res2 = await generate_meaning(openai_client, word, definition)
+        prompt1_res1.append(res1.message.parsed.persian_equivalent)
+        prompt1_res2.append(res2.message.parsed.persian_equivalent)
 
-    meaning_updated_res = []
+    prompt2_res1 = []
+    prompt2_res2 = []
     for definition in tqdm(definitions):
-        meaning_updated_res.append(
-            await generate_meaning_updated(openai_client, word, definition)
-        )
-        time.sleep(10)
+        res1, res2 = await generate_meaning_updated(openai_client, word, definition)
+        prompt2_res1.append(res1.message.parsed.persian_equivalent)
+        prompt2_res2.append(res2.message.parsed.persian_equivalent)
 
-    checked = []
+    def_res1 = []
+    for definition in tqdm(definitions):
+        res1 = await generate_meaning_by_def(openai_client, definition)
+        def_res1.append(res1[0].message.parsed.persian_equivalent)
+
+    checked1_res1 = []
+    checked1_res2 = []
     for i in range(len(definitions)):
-        checked.append(
-            await check_meanings(
-                openai_client,
-                word,
-                definitions[i],
-                [meaining_res[i], meaning_updated_res[i]],
-            )
+        res1, res2 = await check_meanings(
+            openai_client,
+            word,
+            definitions[i],
+            [prompt1_res1[i], prompt2_res1[i]],
         )
-        time.sleep(10)
+        checked1_res1.append(res1.message.parsed.persian_equivalent)
+        checked1_res2.append(res2.message.parsed.persian_equivalent)
 
     return WordMeaning(
         definitions=definitions,
-        meaning=meaining_res,
-        meaning_updated=meaning_updated_res,
-        checked=checked,
+        prompt1_res1=prompt1_res1,
+        prompt1_res2=prompt1_res2,
+        prompt2_res1=prompt2_res1,
+        prompt2_res2=prompt2_res2,
+        checked1_res1=checked1_res1,
+        checked1_res2=checked1_res2,
+        def_res=def_res1,
     )
 
 
 if __name__ == "__main__":
     word = [
-        "tie",
-        # "suit",
-        # "wearing",
-        "match",
-        # "progress",
-        # "kick",
-        "primaeval",
-        "take",
-        "go",
-        "place",
-        # "figure",
-        "represent",
-        "guard",
-        "aggressive",
-        "develop",
-        "land",
-        "company",
-        # "heavily",
-        "bear",
-        "turn",
+        "can",
     ]
     words = []
     definitions = []
-    prompt1 = []
-    prompt2 = []
-    checked = []
+    prompt1_res1 = []
+    prompt1_res2 = []
+    prompt2_res1 = []
+    prompt2_res2 = []
+    checked1_res1 = []
+    checked1_res2 = []
+    def_res = []
     for w in word:
         meaning = asyncio.run(generate_word_meaning_service(w))
         words.extend([w] * len(meaning.definitions))
         definitions.extend(meaning.definitions)
-        prompt1.extend([", ".join(m) for m in meaning.meaning])
-        prompt2.extend([", ".join(mu) for mu in meaning.meaning_updated])
-        checked.extend([", ".join(c) for c in meaning.checked])
-        time.sleep(10)
+        prompt1_res1.extend([", ".join(m) for m in meaning.prompt1_res1])
+        prompt1_res2.extend([", ".join(mu) for mu in meaning.prompt1_res2])
+        prompt2_res1.extend([", ".join(mu) for mu in meaning.prompt2_res1])
+        prompt2_res2.extend([", ".join(mu) for mu in meaning.prompt2_res2])
+        checked1_res1.extend([", ".join(mu) for mu in meaning.checked1_res1])
+        checked1_res2.extend([", ".join(mu) for mu in meaning.checked1_res2])
+        def_res.extend([", ".join(c) for c in meaning.def_res])
 
     df = pd.DataFrame(
         {
             "word": words,
             "defintion": definitions,
-            "prompt1": prompt1,
-            "prompt2": prompt2,
-            "checked_meaining": checked,
+            "prompt1_res1": prompt1_res1,
+            "prompt2_res1": prompt2_res1,
+            "checked1": checked1_res1,
         }
     )
-    df.to_csv("meaning.csv", index=None)
+    df.to_csv("can.csv", index=None)
 
     print(meaning)

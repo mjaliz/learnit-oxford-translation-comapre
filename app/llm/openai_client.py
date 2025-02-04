@@ -25,7 +25,7 @@ class AsyncOpenAIClient:
         )
 
     async def chat(
-        self, *, model, system, messages, temperature, output
+        self, *, model, system, messages, temperature, output, n
     ) -> ParsedChatCompletion:
         messages = [{"role": "system", "content": system}] + messages
         try:
@@ -35,6 +35,7 @@ class AsyncOpenAIClient:
                     messages=messages,
                     temperature=temperature,
                     response_format=output,
+                    n=n,
                 )
             )
             return response

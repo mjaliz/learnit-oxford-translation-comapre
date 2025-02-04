@@ -1,13 +1,16 @@
 import asyncio
 import time
+from loguru import logger
 import pandas as pd
 
 from app.llm.openai_client import AsyncOpenAIClient
-from app.translator.models.meaning import Meaning
+from app.translator.models.meaning import Meaning, MeaningReasoning
 from app.translator.prompt import (
     system_message_updated,
     system_message,
     system_message_by_def,
+    system_message_combine_res,
+    system_message_meaning_steps,
 )
 
 
@@ -35,34 +38,45 @@ async def check_meanings(
     try:
         meaning = await openai_client.chat(
             model="gpt-4o-2024-11-20",
-            system=system_message_updated,
+            system=system_message_combine_res,
             messages=messages,
-            temperature=0,
+            temperature=0.3,
             output=Meaning,
+            n=2,
         )
-        return meaning.choices[0].message.parsed.persian_equivalent
+        return meaning.choices
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 
 
-async def generate_meaning_updated(openai_client: AsyncOpenAIClient, word, definition):
+async def generate_meaning_updated(
+    openai_client: AsyncOpenAIClient, word, pos, definition
+):
     messages = []
     messages.append(
         {"role": "user", "content": f"## Here is the target English word: {word}"}
+    )
+    messages.append(
+        {
+            "role": "user",
+            "content": f"## Here is the part of speech of the targe word: {pos}",
+        }
     )
     messages.append(
         {"role": "user", "content": f"## Here is the word definition: {definition}"}
     )
     try:
         meaning = await openai_client.chat(
-            model="anthropic.claude-3-5-sonnet-20240620-v1:0",
-            system=system_message_updated,
+            model="gpt-4o-2024-11-20",
+            system=system_message_meaning_steps,
             messages=messages,
             temperature=0,
-            output=Meaning,
+            output=MeaningReasoning,
+            n=2,
         )
-        return meaning.choices[0].message.parsed.persian_equivalent
-    except Exception:
+        return meaning.choices
+    except Exception as e:
+        logger.error(e)
         raise ConnectionError("getting result from OpenAI failed")
 
 
@@ -78,9 +92,9 @@ async def generate_meaning_by_def(openai_client: AsyncOpenAIClient, definition):
             messages=messages,
             temperature=0,
             output=Meaning,
+            n=1,
         )
-        time.sleep(2)
-        return meaning.choices[0].message.parsed.persian_equivalent
+        return meaning.choices
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 
@@ -161,13 +175,14 @@ async def generate_meaning(openai_client: AsyncOpenAIClient, word, definition):
     ]
     try:
         meaning = await openai_client.chat(
-            model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+            model="gpt-4o-2024-11-20",
             system=system_message,
             messages=messages,
             temperature=0,
             output=Meaning,
+            n=2,
         )
-        return meaning.choices[0].message.parsed.persian_equivalent
+        return meaning.choices
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 
@@ -175,9 +190,31 @@ async def generate_meaning(openai_client: AsyncOpenAIClient, word, definition):
 if __name__ == "__main__":
     from ast import literal_eval
 
+    def join_res(res):
+        return ", ".join([f.text for f in res[0].message.parsed.final_list])
+
     openai_client = AsyncOpenAIClient()
-    df = pd.read_csv("meaning_reviewed.csv")
-    df["combined_by_def"] = (
-        df["combined_by_def"].apply(literal_eval).apply(lambda d: ", ".join(d))
+    res = asyncio.run(
+        generate_meaning_updated(
+            openai_client,
+            "take",
+            "verb",
+            "to accept somebody as a customer, patient, etc.",
+        )
     )
-    df.to_csv("meaning_reviewed.csv", index=None)
+    paresed_res = res[0].message.parsed
+    print(paresed_res)
+    # df = pd.read_csv("can.csv")
+    # df["cot"] = df.apply(
+    #     lambda d: join_res(
+    #         asyncio.run(
+    #             generate_meaning_updated(
+    #                 openai_client,
+    #                 d["word"],
+    #                 d["defintion"],
+    #             )
+    #         )
+    #     ),
+    #     axis=1,
+    # )
+    # df.to_csv("can.csv", index=False)

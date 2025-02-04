@@ -3,6 +3,10 @@ from pydantic import BaseModel, Field
 
 class WordMeaning(BaseModel):
     definitions: list[str]
-    meaning: list[list[str]]
-    meaning_updated: list[list[str]]
-    checked: list[list[str]] | None = Field(default=None)
+    prompt1_res1: list[list[str]]
+    prompt1_res2: list[list[str]]
+    prompt2_res1: list[list[str]]
+    prompt2_res2: list[list[str]]
+    checked1_res1: list[list[str]]
+    checked1_res2: list[list[str]]
+    def_res: list[list[str]]

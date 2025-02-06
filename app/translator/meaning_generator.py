@@ -4,7 +4,7 @@ from loguru import logger
 import pandas as pd
 
 from app.llm.openai_client import AsyncOpenAIClient
-from app.translator.models.meaning import Meaning, MeaningReasoning
+from app.translator.models.meaning import CheckRes, Meaning, MeaningReasoning
 from app.translator.prompt import (
     system_message_updated,
     system_message,
@@ -37,15 +37,14 @@ async def check_meanings(
     )
     try:
         meaning = await openai_client.chat(
-            model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+            model="gpt-4o-2024-11-20",
             system=system_message_combine_res,
             messages=messages,
-            temperature=0.3,
-            output=Meaning,
+            temperature=0,
+            output=CheckRes,
             n=1,
         )
-        time.sleep(8)
-        return meaning.choices[0].message.content
+        return meaning.choices[0].message.parsed
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 
@@ -75,7 +74,7 @@ async def generate_meaning_updated(
             output=MeaningReasoning,
             n=1,
         )
-        return meaning.choices
+        return meaning.choices[0].message.parsed
     except Exception as e:
         logger.error(e)
         raise ConnectionError("getting result from OpenAI failed")
@@ -181,9 +180,9 @@ async def generate_meaning(openai_client: AsyncOpenAIClient, word, definition):
             messages=messages,
             temperature=0,
             output=Meaning,
-            n=2,
+            n=1,
         )
-        return meaning.choices
+        return meaning.choices[0].message.parsed
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 

@@ -15,9 +15,9 @@ system_message_meaning_steps = """
 
 # Instruction
 - Generate 10 Persian equivalent.
-- Keep in mind to generate all the relevant Persian equivalent related to Englshig target word based on it's definition.
+- Keep in mind to generate all the relevant Persian equivalent related to Englshig target word and it's definition.
 - Choose the most relevant Persian equivalent based on the target word and definition, keep in mind to consider part of speech of the target word in your selection.
-- Explain the reason of why you choose that most relevants stpe by step.
+- Explain the reason of why you choose or did not for every persian equivalent step by step.
 - The generated Persian equivalent should be completely related to English word and it's definition.
 """
 
@@ -53,5 +53,6 @@ system_message_combine_res = """
 
 # Instruction
 - Look at the two list of Persian equivalents, target word and it's definitions and just choose completely true and relevant persian equivalent from two list of Persian equivalent.
+- Explain the reason why did you select each persian equivalent.
 - Keep in mind that the final list items, should be correct and relevant.
 """

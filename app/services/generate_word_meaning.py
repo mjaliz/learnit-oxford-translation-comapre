@@ -24,82 +24,41 @@ async def cot_word_meaning(word: str):
         return None
 
     defs = extract_defs_and_pos(glossary_word)
-    words = []
-    meaning = []
-    definitons = []
-    for d in tqdm(defs):
-        try:
-            meaning.append(
-                join_res(
-                    await generate_meaning_updated(
-                        openai_client,
-                        word,
-                        d["pos"],
-                        d["definition"],
-                    )
-                )
-            )
-            definitons.append(d["definition"])
-            words.append(word)
-        except Exception as e:
-            logger.error(e)
-            continue
-    df = pd.DataFrame({"word": words, "definition": definitons, "meaning": meaning})
-    df.to_csv(f"{word}3.csv", index=False, encoding="utf-8")
-
-
-async def generate_word_meaning_service(word: str) -> WordMeaning:
-    openai_client = AsyncOpenAIClient()
-    glossary_word = await fetch_word(word)
-
-    if glossary_word is None:
-        return None
-    definitions = [
-        item.definition.text
-        for item in glossary_word.items
-        if item.definition.text != ""
-    ]
-    prompt1_res1 = []
-    prompt1_res2 = []
-    for definition in tqdm(definitions):
-        res1, res2 = await generate_meaning(openai_client, word, definition)
-        prompt1_res1.append(res1.message.parsed.persian_equivalent)
-        prompt1_res2.append(res2.message.parsed.persian_equivalent)
-
-    prompt2_res1 = []
-    prompt2_res2 = []
-    for definition in tqdm(definitions):
-        res1, res2 = await generate_meaning_updated(openai_client, word, definition)
-        prompt2_res1.append(res1.message.parsed.persian_equivalent)
-        prompt2_res2.append(res2.message.parsed.persian_equivalent)
-
-    def_res1 = []
-    for definition in tqdm(definitions):
-        res1 = await generate_meaning_by_def(openai_client, definition)
-        def_res1.append(res1[0].message.parsed.persian_equivalent)
-
-    checked1_res1 = []
-    checked1_res2 = []
-    for i in range(len(definitions)):
-        res1, res2 = await check_meanings(
-            openai_client,
-            word,
-            definitions[i],
-            [prompt1_res1[i], prompt2_res1[i]],
-        )
-        checked1_res1.append(res1.message.parsed.persian_equivalent)
-        checked1_res2.append(res2.message.parsed.persian_equivalent)
-
-    return WordMeaning(
-        definitions=definitions,
-        prompt1_res1=prompt1_res1,
-        prompt1_res2=prompt1_res2,
-        prompt2_res1=prompt2_res1,
-        prompt2_res2=prompt2_res2,
-        checked1_res1=checked1_res1,
-        checked1_res2=checked1_res2,
-        def_res=def_res1,
+    words = [word] * len(defs)
+    meaning = await asyncio.gather(
+        *[generate_meaning(openai_client, word, d["definition"]) for d in defs]
     )
+    meaning_updated = await asyncio.gather(
+        *[
+            generate_meaning_updated(openai_client, word, d["pos"], d["definition"])
+            for d in defs
+        ]
+    )
+    checked = await asyncio.gather(
+        *[
+            check_meanings(
+                openai_client,
+                word,
+                defs[i]["definition"],
+                [meaning[i].persian_equivalent, meaning_updated[i].final_list],
+            )
+            for i in range(len(defs))
+        ]
+    )
+    df = pd.DataFrame(
+        {
+            "word": words,
+            "definition": [d["definition"] for d in defs],
+            "meaning": [", ".join(m.persian_equivalent) for m in meaning],
+            "meaning_updated": [
+                ", ".join([p.text for p in mu.final_list]) for mu in meaning_updated
+            ],
+            "checked": [
+                ", ".join([sp.text for sp in s.selected_equivalents]) for s in checked
+            ],
+        }
+    )
+    df.to_csv(f"{word}.csv", index=False, encoding="utf-8-sig")
 
 
 if __name__ == "__main__":
@@ -139,4 +98,4 @@ if __name__ == "__main__":
     # df.to_csv("can.csv", index=None)
 
     # print(meaning)
-    asyncio.run(cot_word_meaning("take"))
+    asyncio.run(cot_word_meaning("off"))

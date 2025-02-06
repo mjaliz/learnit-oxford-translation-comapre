@@ -7,6 +7,15 @@ class Meaning(BaseModel):
     )
 
 
+class SelectedPersian(BaseModel):
+    text: str
+    reason: str
+
+
+class CheckRes(BaseModel):
+    selected_equivalents: list[SelectedPersian]
+
+
 class PesrianEq(BaseModel):
     text: str = Field(description="Text of the persian equivalent")
 
@@ -14,6 +23,7 @@ class PesrianEq(BaseModel):
 class Step(BaseModel):
     explanation: str
     persian_eq: PesrianEq
+    is_choosed: bool
 
 
 class MeaningReasoning(BaseModel):

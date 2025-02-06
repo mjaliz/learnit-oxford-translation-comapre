@@ -30,11 +30,10 @@ class AsyncOpenAIClient:
         messages = [{"role": "system", "content": system}] + messages
         try:
             response: ParsedChatCompletion = (
-                await self.__client.beta.chat.completions.parse(
+                await self.__client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
-                    response_format=output,
                     n=n,
                 )
             )

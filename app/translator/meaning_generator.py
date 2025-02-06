@@ -20,31 +20,32 @@ async def check_meanings(
     messages = []
     messages.extend(
         [
-            {"role": "system", "content": f"## Here is the target word: {word}"},
+            {"role": "user", "content": f"## Here is the target word: {word}"},
             {
-                "role": "system",
+                "role": "user",
                 "content": f"## Here is the word definition: {definition}",
             },
             {
-                "role": "system",
+                "role": "user",
                 "content": f"## Here is the first list of Persian equivalents: {persian_eqs[0]}",
             },
             {
-                "role": "system",
+                "role": "user",
                 "content": f"## Here is the second list of Persian equivalents: {persian_eqs[1]}",
             },
         ]
     )
     try:
         meaning = await openai_client.chat(
-            model="gpt-4o-2024-11-20",
+            model="anthropic.claude-3-5-sonnet-20240620-v1:0",
             system=system_message_combine_res,
             messages=messages,
             temperature=0.3,
             output=Meaning,
-            n=2,
+            n=1,
         )
-        return meaning.choices
+        time.sleep(8)
+        return meaning.choices[0].message.content
     except Exception:
         raise ConnectionError("getting result from OpenAI failed")
 
@@ -72,7 +73,7 @@ async def generate_meaning_updated(
             messages=messages,
             temperature=0,
             output=MeaningReasoning,
-            n=2,
+            n=1,
         )
         return meaning.choices
     except Exception as e:
@@ -187,11 +188,12 @@ async def generate_meaning(openai_client: AsyncOpenAIClient, word, definition):
         raise ConnectionError("getting result from OpenAI failed")
 
 
+def join_res(res):
+    return ", ".join([f.text for f in res[0].message.parsed.final_list])
+
+
 if __name__ == "__main__":
     from ast import literal_eval
-
-    def join_res(res):
-        return ", ".join([f.text for f in res[0].message.parsed.final_list])
 
     openai_client = AsyncOpenAIClient()
     res = asyncio.run(
@@ -199,7 +201,7 @@ if __name__ == "__main__":
             openai_client,
             "take",
             "verb",
-            "to accept somebody as a customer, patient, etc.",
+            "to remove something/somebody from a place or a person",
         )
     )
     paresed_res = res[0].message.parsed

@@ -36,3 +36,17 @@ async def fetch_word(word: str) -> Word | None:
     logger.info("Found in the dictionary.")
     glossary_word = Word(**resp.json()["data"])
     return glossary_word
+
+
+def extract_defs_and_pos(word: Word):
+    defs = []
+    for item in word.items:
+        if item.definition.text.strip() == "":
+            continue
+        d = {"definition": item.definition.text}
+        for g in word.groups:
+            if item.id in g.item_ids:
+                d["pos"] = g.part_of_speeches
+                break
+        defs.append(d)
+    return defs

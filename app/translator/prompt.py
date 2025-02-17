@@ -53,6 +53,5 @@ system_message_combine_res = """
 
 # Instruction
 - Look at the two list of Persian equivalents, target word and it's definitions and just choose completely true and relevant persian equivalent from two list of Persian equivalent.
-- Explain the reason why did you select each persian equivalent.
 - Keep in mind that the final list items, should be correct and relevant.
 """

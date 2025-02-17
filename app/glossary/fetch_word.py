@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.utils.generate_internal_token import generate_internal_token
 from app.glossary.models.word import Word
+from app.translator.batch.models import glossary
 
 
 async def post(url, data, query=None, headers=None):
@@ -38,12 +39,13 @@ async def fetch_word(word: str) -> Word | None:
     return glossary_word
 
 
-def extract_defs_and_pos(word: Word):
+def extract_defs_and_pos(word: glossary.Word):
     defs = []
     for item in word.items:
         if item.definition.text.strip() == "":
             continue
         d = {"definition": item.definition.text}
+        d["id"] = item.id
         for g in word.groups:
             if item.id in g.item_ids:
                 d["pos"] = g.part_of_speeches

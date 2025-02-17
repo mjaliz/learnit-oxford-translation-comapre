@@ -9,7 +9,6 @@ class Meaning(BaseModel):
 
 class SelectedPersian(BaseModel):
     text: str
-    reason: str
 
 
 class CheckRes(BaseModel):

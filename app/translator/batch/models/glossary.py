@@ -24,7 +24,7 @@ class Group(BaseModel):
     lemma_id: str
     part_of_speeches: List[str] | None
     phonetics: List[Phonetic] | None
-    item_ids: List[str]
+    item_ids: List[str] | None
 
 
 class Definition(BaseModel):
